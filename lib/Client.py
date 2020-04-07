@@ -1,6 +1,6 @@
 class Client(object):
     def __init__(self, name: str):
-        super().__init__(self)
+        super().__init__()
         self._name = name
 
     def connect(self, host: str, port: int):
