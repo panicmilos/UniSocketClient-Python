@@ -33,7 +33,7 @@ class Client(object):
         data_dict = {}
         data_dict["event_name"] = event_name
         data_dict["data"] = data
-        data_json_string = json.dumps(data_dict)
+        data_json_string = json.dumps(data_dict).replace('"', R'\\\"')
 
         if self._num_of_receivers == 1:
             self._send_to_client(data_json_string)
@@ -63,9 +63,10 @@ class Client(object):
         data_string = data.decode("utf-8")
         try:
             data_dict = json.loads(data_string)
-            event_name = data_dict.event_name
+            event_name = data_dict["event_name"]
+            data = data_dict["data"]
             handler = self._event_handlers[event_name]
-            handler(data_dict)
+            handler(data)
         except Exception:
             print("Invalid JSON format in: " + data_string)
         return 0
