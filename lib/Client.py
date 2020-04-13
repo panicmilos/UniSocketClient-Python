@@ -1,8 +1,14 @@
 import json
 from ctypes import *
-import os.path as path
+import os
 
 CB_F_TYPE = CFUNCTYPE(c_int, c_char_p)
+
+
+dll_path = os.path.abspath(__file__)
+dll_path = os.path.realpath(dll_path)
+dll_path = os.path.dirname(dll_path)
+dll_path = os.path.join(dll_path, "UniSocketClient.dll")
 
 
 class Client(object):
@@ -11,8 +17,7 @@ class Client(object):
         self._name = name
         self._event_handlers = {}
         self._on_read_data = CB_F_TYPE(self._read_callback)
-        print(path.abspath(path.join(__file__, "../../dll", "UniSocketClient.dll")))
-        self._ClientDLL = cdll.LoadLibrary(path.abspath(path.join(__file__, "../../dll", "UniSocketClient.dll")))
+        self._ClientDLL = cdll.LoadLibrary(dll_path)
         self._client = self._ClientDLL.client(bytes(self._name, 'utf-8'), self._on_read_data, self._on_read_data)
         self._receivers = ""
         self._num_of_receivers = 0
@@ -61,7 +66,6 @@ class Client(object):
 
     def _read_callback(self, data: str):
         data_string = data.decode("utf-8")
-        print(data_string)
         try:
             data_dict = json.loads(data_string)
             event_name = data_dict["event_name"]
