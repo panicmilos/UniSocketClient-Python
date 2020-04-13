@@ -1,8 +1,9 @@
 import json
 from ctypes import *
-import os
+import os.path as path
 
 CB_F_TYPE = CFUNCTYPE(c_int, c_char_p)
+
 
 class Client(object):
     def __init__(self, name: str):
@@ -10,12 +11,13 @@ class Client(object):
         self._name = name
         self._event_handlers = {}
         self._on_read_data = CB_F_TYPE(self._read_callback)
-        self._ClientDLL = cdll.LoadLibrary(os.path.join(os.path.abspath(os.path.dirname(__file__)), "../dll/UniSocketClientPython.dll"))
-        self._client = self._ClientDLL.client(bytes(self._name, 'utf-8'), self._on_read_data)
+        print(path.abspath(path.join(__file__, "../../dll", "UniSocketClient.dll")))
+        self._ClientDLL = cdll.LoadLibrary(path.abspath(path.join(__file__, "../../dll", "UniSocketClient.dll")))
+        self._client = self._ClientDLL.client(bytes(self._name, 'utf-8'), self._on_read_data, self._on_read_data)
         self._receivers = ""
         self._num_of_receivers = 0
 
-    def connect(self, host: str, port: int):
+    def connect(self, host: str, port: str):
         self._ClientDLL.connect_to_server(self._client, bytes(host, 'utf-8'), bytes(port, 'utf-8'))
 
     def disconnect(self):
@@ -30,9 +32,7 @@ class Client(object):
         return self
 
     def emit(self, event_name: str, data):
-        data_dict = {}
-        data_dict["event_name"] = event_name
-        data_dict["data"] = data
+        data_dict = {"event_name": event_name, "data": data}
         data_json_string = json.dumps(data_dict)
 
         if self._num_of_receivers == 1:
@@ -61,11 +61,13 @@ class Client(object):
 
     def _read_callback(self, data: str):
         data_string = data.decode("utf-8")
+        print(data_string)
         try:
             data_dict = json.loads(data_string)
-            event_name = data_dict.event_name
+            event_name = data_dict["event_name"]
+            data = data_dict["data"]
             handler = self._event_handlers[event_name]
-            handler(data_dict)
+            handler(data)
         except Exception:
             print("Invalid JSON format in: " + data_string)
         return 0
