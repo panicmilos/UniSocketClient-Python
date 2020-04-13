@@ -8,7 +8,8 @@ CB_F_TYPE = CFUNCTYPE(c_int, c_char_p)
 dll_path = os.path.abspath(__file__)
 dll_path = os.path.realpath(dll_path)
 dll_path = os.path.dirname(dll_path)
-dll_path = os.path.join(dll_path, "UniSocketClient.dll")
+
+os.environ['PATH'] = dll_path + ";" + os.environ['PATH']
 
 
 class Client(object):
@@ -17,9 +18,10 @@ class Client(object):
         self._name = name
         self._event_handlers = {}
         self._on_read_data = CB_F_TYPE(self._read_callback)
-        self._ClientDLL = cdll.LoadLibrary(dll_path)
+        self._ClientDLL = cdll.LoadLibrary("UniSocketClient.dll")
         self._client = self._ClientDLL.client(bytes(self._name, 'utf-8'), self._on_read_data, self._on_read_data)
         self._receivers = ""
+        self._is_broadcast = False
         self._num_of_receivers = 0
 
     def connect(self, host: str, port: str):
@@ -36,15 +38,28 @@ class Client(object):
         self._receivers += client_name if self._receivers == "" else "," + client_name
         return self
 
+    def to_clients(self, client_names: list):
+        self._num_of_receivers += len(client_names)
+        for client_name in client_names:
+            self._receivers += client_name if self._receivers == "" else "," + client_name
+        return self
+
+    def broadcast(self):
+        self._is_broadcast = True
+        return self
+
     def emit(self, event_name: str, data):
         data_dict = {"event_name": event_name, "data": data}
         data_json_string = json.dumps(data_dict)
+
+        if self._is_broadcast:
+            self._broadcast(data_json_string)
 
         if self._num_of_receivers == 1:
             self._send_to_client(data_json_string)
 
         elif self._num_of_receivers == 0:
-            self._broadcast(data_json_string)
+            self._custom_event(data_json_string)
 
         else:
             self._send_to_clients(data_json_string)
@@ -60,8 +75,12 @@ class Client(object):
     def _broadcast(self, data):
         self._ClientDLL.broadcast(self._client, bytes(data, 'utf-8'))
 
+    def _custom_event(self, data):
+        self._ClientDLL.custom_event(self._client, bytes(data, 'utf-8'))
+
     def _reset_receivers(self):
         self._receivers = ""
+        self._is_broadcast = False
         self._num_of_receivers = 0
 
     def _read_callback(self, data: str):

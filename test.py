@@ -7,7 +7,7 @@ client.on("test", lambda data:
     print(data)
           )
 
-client.to("Luka").emit("test", "aaa")
+
 # i = 0
 # while i < 10:
 #     i += 1
@@ -15,4 +15,5 @@ client.to("Luka").emit("test", "aaa")
 #     pass
 
 while 1:
+    client.emit("test", "aaa")
     pass
